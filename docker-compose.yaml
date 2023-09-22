@@ -1,0 +1,52 @@
+# @format
+
+services:
+  # MySQL database service
+  mysql:
+    image: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootroot
+      MYSQL_DATABASE: opencart_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: P@ssW0rd
+    ports:
+      - "6033:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    # Health check command to ensure MySQL is responsive
+    healthcheck:
+      test: "mysql $$MYSQL_DATABASE -uroot -p$$MYSQL_ROOT_PASSWORD -e  'SELECT 1;'"
+      interval: 1s
+      timeout: 20s
+      retries: 10
+      start_period: 10s
+  # OpenCart application service
+  opencart:
+    depends_on:
+      mysql:
+        condition: service_healthy
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8000:80
+    environment:
+      HTTP_SERVER: "http://localhost:8000/"
+      ADMIN_USERNAME: ## "admin username"
+      ADMIN_EMAIL: ## "admin email"
+      ADMIN_PASSWORD: ## "admin password"
+      DB_DRIVER: mysqli
+      DB_HOSTNAME: mysql ## same env information about our Mysql DB
+      DB_USERNAME: user
+      DB_PASSWORD: P@ssW0rd
+      DB_DATABASE: opencart_db
+      DB_PORT: 3306
+      DB_PREFIX: oc_
+    volumes:
+      # Mount the local "upload" directory to the container's web server directory
+      - type: bind
+        source: ./upload
+        target: /var/www/html
+
+volumes:
+  db_data:
